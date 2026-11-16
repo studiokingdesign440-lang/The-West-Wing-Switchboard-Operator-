@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0b0908">
+<title>THE WEST WING: Switchboard Operator</title>
+<style>
+:root{
+  --bg:#0b0908;--panel:#1a1411;--brass:#c9a227;--brass2:#f0d27a;
+  --cream:#ede0c8;--dim:#8a7a63;--red:#e04b3a;--green:#5fd47a;--amber:#f0a63a;--line:#3d2f25;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;height:100%;overflow:hidden;background:var(--bg);color:var(--cream);
+  font-family:"Courier New",ui-monospace,monospace;-webkit-user-select:none;user-select:none;touch-action:manipulation}
+body{background:radial-gradient(ellipse at 50% 0%,#241c15 0%,#0b0908 70%)}
+#app{height:100dvh;display:flex;flex-direction:column;position:relative}
+.screen{display:none;flex:1;min-height:0;flex-direction:column}
+.screen.active{display:flex}
+
+/* TITLE */
+#screen-title{align-items:center;justify-content:center;padding:24px;text-align:center;overflow-y:auto}
+.titlecard{max-width:640px}
+.kicker{color:var(--brass);letter-spacing:.4em;font-size:11px;text-transform:uppercase;margin-bottom:14px}
+h1{font-size:clamp(22px,5.5vw,40px);line-height:1.05;margin:0 0 6px;letter-spacing:.02em;color:var(--brass2);
+  text-shadow:0 0 24px rgba(201,162,39,.35)}
+h1 span{display:block;font-size:clamp(13px,2.6vw,19px);color:var(--cream);letter-spacing:.28em;margin-top:12px;opacity:.85}
+.blurb{color:var(--dim);font-size:13px;line-height:1.75;margin:26px 0;text-align:left;border-left:2px solid var(--line);padding-left:16px}
+.blurb b{color:var(--cream);font-weight:normal}
+.btn{display:block;width:100%;max-width:420px;margin:0 auto;background:linear-gradient(#2e241d,#191310);
+  border:2px solid var(--brass);border-radius:8px;color:var(--brass2);font-family:inherit;font-size:15px;
+  letter-spacing:.18em;padding:16px;cursor:pointer;text-transform:uppercase;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.07),0 4px 0 #0a0706;transition:transform .05s,box-shadow .05s}
+.btn:active{transform:translateY(3px);box-shadow:inset 0 3px 10px rgba(0,0,0,.7)}
+
+/* BRIEF / REPORT */
+#screen-brief,#screen-report,#screen-end{padding:20px;justify-content:center;align-items:center;overflow-y:auto}
+.card{max-width:660px;width:100%;border:3px double var(--line);background:rgba(26,20,17,.94);
+  padding:22px;border-radius:4px}
+.card .dayline{color:var(--brass);font-size:12px;letter-spacing:.3em;margin-bottom:6px}
+.card h2{font-size:clamp(17px,4vw,26px);margin:0 0 14px;color:var(--brass2);letter-spacing:.06em}
+.card p{font-size:13.5px;line-height:1.8;color:var(--cream);margin:0 0 12px}
+.briefstats{display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--dim);margin-bottom:18px;letter-spacing:.1em}
+.briefstats div{border:1px solid var(--line);padding:6px 10px;border-radius:3px}
+.briefstats b{color:var(--brass2);font-weight:normal}
+.statrow{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px dotted #2a221a;font-size:13px}
+.statrow span:first-child{color:var(--dim);font-size:11.5px;letter-spacing:.1em}
+.statrow.big span:last-child{color:var(--brass2);font-size:16px}
+.verdict{margin:16px 0;padding:13px;border-left:3px solid var(--brass);background:rgba(201,162,39,.06);
+  font-size:12.5px;line-height:1.8;color:#d8cbb4}
+.verdict b{color:var(--brass2);font-weight:normal}
+
+/* HUD */
+#hud{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:7px 10px;
+  background:linear-gradient(#241a14,#14100d);border-bottom:2px solid var(--line);
+  font-size:10.5px;letter-spacing:.08em;flex:0 0 auto}
+#hud .chip{color:var(--dim);white-space:nowrap}
+#hud .chip b{color:var(--cream);font-weight:normal}
+#hud .clock{color:var(--brass2);font-size:13px;letter-spacing:.12em}
+#repbar{width:60px;height:8px;background:#0a0706;border:1px solid var(--line);border-radius:2px;
+  overflow:hidden;display:inline-block;vertical-align:middle}
+#repfill{height:100%;background:linear-gradient(90deg,#5fd47a,#c9a227);transition:width .3s,background .3s}
+.spacer{flex:1}
+#mutebtn{background:none;border:1px solid var(--line);color:var(--dim);border-radius:4px;
+  padding:4px 8px;font-family:inherit;font-size:10.5px;cursor:pointer}
+
+/* PLAY */
+#play{flex:1;min-height:0;display:flex;gap:9px;padding:9px}
+#callcol{flex:1.6;min-width:0;display:flex;flex-direction:column;gap:7px}
+#notescol{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}
+#callbox{flex:1;min-height:0;overflow-y:auto;background:#080a07;border:3px solid #6b5334;
+  box-shadow:inset 0 0 0 2px #14100d,inset 0 0 40px rgba(0,0,0,.9);border-radius:3px;
+  padding:13px 15px;font-size:15px;line-height:1.62;color:#e8dcc8;-webkit-overflow-scrolling:touch}
+#callbox .speaker{color:var(--brass2);font-size:11.5px;letter-spacing:.2em;margin-bottom:9px;
+  border-bottom:1px dashed #3a2f22;padding-bottom:6px;text-transform:uppercase}
+#callbox .line{margin:0 0 11px}
+#callbox .line.fwd{color:var(--brass2)}
+#callbox .line.bad{color:#ff8f7f}
+#callbox .line.good{color:#8ef0a8}
+#callbox .line.sys{color:var(--dim);font-size:12px;letter-spacing:.12em}
+#callbox .prompt{color:var(--amber);font-size:11.5px;letter-spacing:.14em}
+#callfoot{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:10px;
+  letter-spacing:.15em;color:var(--dim);flex:0 0 auto;padding:0 2px}
+.urg{padding:3px 8px;border-radius:2px;border:1px solid currentColor;font-size:10px}
+.u1{color:#5fd47a}.u2{color:#c9c07a}.u3{color:#f0a63a}.u4{color:#ff7a4d}
+.u5{color:#ff4b3e;animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.35}}
+#patwrap{height:9px;background:#0a0706;border:1px solid var(--line);border-radius:2px;
+  overflow:hidden;flex:0 0 auto}
+#patfill{height:100%;width:100%;background:linear-gradient(90deg,#5fd47a,#c9a227,#e04b3a);transition:width .1s linear}
+#notescol .nhead{font-size:10px;letter-spacing:.22em;color:var(--brass);flex:0 0 auto;padding-left:2px}
+#memos{flex:1;min-height:60px;overflow-y:auto;background:#0d0b09;border:2px solid var(--line);
+  border-radius:3px;padding:8px 10px;font-size:11.5px;line-height:1.6;color:#c9bda6;-webkit-overflow-scrolling:touch}
+#memos .memo{margin-bottom:8px;padding-bottom:8px;border-bottom:1px dotted #2a221a}
+#memos .memo:last-child{border-bottom:none}
+#memos .memo.new{animation:flash 1.4s ease-out}
+@keyframes flash{0%{background:rgba(201,162,39,.35)}100%{background:transparent}}
+#pad{flex:0 0 auto;height:64px;resize:none;background:#0d0b09;border:2px solid var(--line);
+  border-radius:3px;color:#c9bda6;font-family:inherit;font-size:12px;line-height:1.5;
+  padding:7px 9px;-webkit-user-select:text;user-select:text}
+#pad:focus{outline:none;border-color:var(--brass)}
+
+/* BOARD */
+#board{flex:0 0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:8px 9px 11px;
+  background:repeating-linear-gradient(45deg,#171210 0 6px,#1b1512 6px 12px);
+  border-top:3px solid #2a211a;box-shadow:inset 0 8px 22px rgba(0,0,0,.8)}
+@media(min-width:760px){#board{grid-template-columns:repeat(4,1fr)}}
+.ext{position:relative;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;
+  gap:1px;min-height:52px;padding:6px 8px 6px 22px;
+  background:linear-gradient(#2f241c,#171210);border:2px solid #3f3128;border-radius:5px;
+  color:#e6d9c2;font-family:inherit;text-align:left;cursor:pointer;
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.06),0 3px 0 #0a0706;
+  transition:transform .05s,box-shadow .05s,background .12s;overflow:hidden}
+.ext .lbl{font-size:10.5px;letter-spacing:.05em;line-height:1.15}
+.ext .sub{font-size:8px;color:#8a7a63;letter-spacing:.04em;line-height:1.1}
+.ext .lamp{position:absolute;left:7px;top:50%;transform:translateY(-50%);width:8px;height:8px;
+  border-radius:50%;background:#3a2a1c;box-shadow:inset 0 0 3px #000}
+.ext:not(.off) .lamp{background:radial-gradient(circle at 35% 35%,#ffe9a8,#c9a227 60%,#6b4f10);
+  box-shadow:0 0 8px rgba(201,162,39,.7),inset 0 0 2px #000}
+.ext:active{transform:translateY(3px);box-shadow:inset 0 4px 12px rgba(0,0,0,.8)}
+.ext.off{opacity:.4}
+.ext.off .lamp{background:#241a12;box-shadow:none}
+.ext.good{background:linear-gradient(#1f4a2a,#0e2415);border-color:#5fd47a}
+.ext.bad{background:linear-gradient(#4a1f1a,#240e0c);border-color:#e04b3a}
+
+/* TOAST */
+#toast{position:fixed;left:50%;top:60px;transform:translateX(-50%);background:#1a1411;
+  border:2px solid var(--brass);color:var(--brass2);padding:9px 16px;border-radius:4px;
+  font-size:11.5px;letter-spacing:.1em;z-index:99;pointer-events:none;opacity:0;
+  transition:opacity .25s,top .25s;box-shadow:0 6px 24px rgba(0,0,0,.8);max-width:88vw;text-align:center}
+#toast.show{opacity:1;top:72px}
+
+@media(max-width:700px){
+  #play{flex-direction:column}
+  #notescol{flex:0 0 auto;max-height:24vh}
+  #callbox{font-size:13.5px}
+  #pad{height:48px}
+}
+@media(max-height:520px){#notescol{display:none}}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- TITLE -->
+  <div id="screen-title" class="screen active">
+    <div class="titlecard">
+      <div class="kicker">A Fanfiction of the West Wing</div>
+      <h1>THE SWITCHBOARD<span>OPERATOR</span></h1>
+      <div class="blurb">
+        You are the new <b>Director of the Information Office</b>.<br>
+        You have a desk, a headset, a board of twelve lines,<br>
+        and eleven people who already know more than you do.<br><br>
+        Every call reaches you first. <b>Patch it correctly.</b><br>
+        Wrong desk, and the building eats you alive.<br><br>
+        Seven days. Two shifts. A great many telephones.
+      </div>
+      <button class="btn" id="startBtn">TAKE THE DESK</button>
+    </div>
+  </div>
+
+  <!-- BRIEF -->
+  <div id="screen-brief" class="screen">
+    <div class="card">
+      <div class="dayline" id="briefDay"></div>
+      <h2 id="briefTitle"></h2>
+      <p id="briefText"></p>
+      <div class="briefstats" id="briefStats"></div>
+      <button class="btn" id="briefBtn">OPEN THE BOARD</button>
+    </div>
+  </div>
+
+  <!-- PLAY -->
+  <div id="screen-play" class="screen">
+    <div id="hud">
+      <span class="chip">DAY <b id="hudDay">1</b></span>
+      <span class="chip" id="hudShift">DAY</span>
+      <span class="clock" id="hudClock">6:00 AM</span>
+      <span class="chip">DESK <b id="hudCalls">0/0</b></span>
+      <span class="chip">SCORE <b id="hudScore">0</b></span>
+      <span class="chip">REP <span id="repbar"><span id="repfill" style="width:100%"></span></span></span>
+      <span class="spacer"></span>
+      <button id="mutebtn">♪ ON</button>
+    </div>
+
+    <div id="play">
+      <div id="callcol">
+        <div id="callbox">
+          <div class="speaker" id="callSpeaker">STANDBY</div>
+          <div id="callBody"></div>
+        </div>
+        <div id="callfoot">
+          <span class="urg u2" id="urgTag">ROUTINE</span>
+          <span id="lineTag">LINE 1</span>
+          <span class="spacer"></span>
+          <span id="patLabel">PATCH WINDOW</span>
+        </div>
+        <div id="patwrap"><div id="patfill"></div></div>
+      </div>
+
+      <div id="notescol">
+        <div class="nhead">MEMOS &amp; NOTES</div>
+        <div id="memos"></div>
+        <textarea id="pad" placeholder="Your notepad. Nobody reads it. Write anyway."></textarea>
+      </div>
+    </div>
+
+    <div id="board"></div>
+  </div>
+
+  <!-- REPORT -->
+  <div id="screen-report" class="screen">
+    <div class="card" id="reportCard"></div>
+  </div>
+
+  <!-- END -->
+  <div id="screen-end" class="screen">
+    <div class="card" id="endCard"></div>
+  </div>
+
+</div>
+<div id="toast"></div>
+
+<script>
+"use strict";
+/* ============================================================
+   THE WEST WING: SWITCHBOARD OPERATOR
+   ============================================================ */
+const $ = id => document.getElementById(id);
+const rnd = a => a[Math.floor(Math.random()*a.length)];
+const shuffle = a => { a=a.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; };
+const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+
+/* ---------------- EXTENSIONS ---------------- */
+const EXT = {
+  oval:    {label:'OVAL OFFICE',    sub:'POTUS'},
+  mrsl:    {label:'MRS LANDINGHAM', sub:'EXEC SECRETARY'},
+  charlie: {label:'CHARLIE YOUNG',  sub:'BODY MAN'},
+  leo:     {label:'LEO McGARRY',    sub:'CHIEF OF STAFF'},
+  josh:    {label:'JOSH LYMAN',     sub:'DEPUTY COS'},
+  toby:    {label:'TOBY ZIEGLER',   sub:'COMMS'},
+  cj:      {label:'CJ CREGG',       sub:'PRESS'},
+  sitroom: {label:'SITUATION ROOM', sub:'NSC'},
+  abbey:   {label:'FIRST LADY',     sub:'DR BARTLET'},
+  kitchen: {label:'KITCHEN',        sub:'SAL & LINE'},
+  usss:    {label:'SECRET SERVICE', sub:'AGENT CASPER'},
+  mailroom:{label:'MAIL ROOM',      sub:'SCREENERS'}
+};
+const EXT_ORDER = ['oval','mrsl','charlie','leo','josh','toby','cj','sitroom','abbey','kitchen','usss','mailroom'];
+
+/* ---------------- VOICES (wrong-desk reactions) ---------------- */
+const WRONG = {
+  oval:   `"I am the President. I do not take that call. Find the person who does. That is an order, and I do not give many."`,
+  mrsl:   `"You have brought me the wrong thing. I will fix it, because I fix everything. But I will remember."`,
+  charlie:`"I'm the aide. That's not the President's problem. That's barely a problem."`,
+  leo:    `"I run this building. I do not run that. Try again, and try better."`,
+  josh:   `"That's not my portfolio. That's not even my zip code."`,
+  toby:   `"I write sentences. If it can't be a sentence, it isn't mine."`,
+  cj:     `"I don't do that. I do the part where I lie to reporters about that."`,
+  sitroom:`"Unless something is on fire somewhere, this is not ours."`,
+  abbey:  `"This is not medical, political, or marital. There is no fourth category."`,
+  kitchen:`"We cook. That's the whole job. We cook."`,
+  usss:   `"That's not a threat. That's a Tuesday. Wrong desk."`,
+  mailroom:`"Buddy, that one's for the professionals."`
+};
+const HANDOFF = {
+  mrsl:   `Mrs Landingham holds the line. A long pause. "…I'll see if he's free."`,
+  charlie:`Charlie takes it. "Give me a minute. He's eating. He's always eating."`,
+  leo:    `Leo's office picks up on the first ring. "He's expecting it."`,
+  josh:   `Josh's voice, mid-sentence with someone else: "Yeah — put it through."`,
+  toby:   `Toby answers with a sigh you can hear in three states.`,
+  cj:     `CJ's office. "She's in briefing. She'll call back. She always calls back."`,
+  sitroom:`A click. A different kind of silence. Then: "Go."`,
+  abbey:  `The First Lady's office. "She'll take it. She's a doctor. She always takes it."`,
+  kitchen:`Sal picks up. You can hear a grill.`,
+  usss:   `Secret Service. "We have it. Hang up. Don't ask."`,
+  mailroom:`The screener takes it. You hear a stamp come down.`,
+  oval:   `The Oval Office. A pause that lasts a full second too long. Then: "Put it through."`
+};
+
+/* ---------------- CALL HELPERS ---------------- */
+/* C(who, text, chain, post, tier, urg, minDay) */
+const C = (who,text,chain,post,tier,urg,minDay)=>({who,text,chain,post,tier,urg,minDay:minDay||1});
+
+const POOL = [
+/* ---- TIER 1 : single hop ---- */
+C('A MAN FROM BOISE',
+  `"I just want to know if the President has ever personally eaten an entire turkey. Not a slice. The whole bird."`,
+  ['mailroom'],`The screener takes it. You hear "the whole bird" repeated twice before the line goes dead.`,
+  1,1,1),
+C('DANNY CONCANNON — WASHINGTON POST',
+  `"It's Danny. The President was eleven minutes late to the photo op. Eleven is a weird number. Eleven has a story inside it."`,
+  ['cj'],`CJ takes it. You hear "Danny." Then you hear "Danny." again. Then you stop hearing anything.`,
+  1,2,1),
+C('REP. HALLIDAY (R-OH)',
+  `"I need Josh Lyman. I have a highway bill with my name on it and I want the White House on the correct side of it."`,
+  ['josh'],`Josh picks up on the first ring. That means he was expecting this call. That means something.`,
+  1,2,1),
+C('PENTAGON DUTY OFFICER',
+  `"Patch me to the Sit Room. Don't say my name. Don't say the word 'the' before a noun that follows it."`,
+  ['sitroom'],`Click. Buzz. A line you are not cleared to know about picks up.`,
+  1,3,1),
+C('A WOMAN IN SACRAMENTO',
+  `"The President said on the radio he was going to do something about the drought. I'd like to know what."`,
+  ['cj'],`CJ: "He said we were looking at it." The woman: "That's not a thing. That's a verb." CJ writes it down anyway.`,
+  1,2,1),
+C('GINGER — TOBY\'S OFFICE',
+  `"Toby needs the President's remarks for the governors' dinner, and he needs them before he starts rewriting the Constitution again."`,
+  ['toby'],`Toby: "I have the remarks. I also have notes. God, do I have notes."`,
+  1,2,1),
+C('A DONOR',
+  `"This is… a friend of the party. I'd like to discuss a position. An ambassadorship. A warm one."`,
+  ['josh'],`Josh: "Warm. Warm ambassadorship. Got it. Put him through." He does not sound surprised.`,
+  1,2,1),
+C('A MAN WITH A THEORY',
+  `"The Washington Monument is a cover for a listening device. I have a diagram. The diagram is also a listening device."`,
+  ['mailroom'],`The screener sighs the sigh of a man who has heard it before, and takes him anyway.`,
+  1,1,1),
+C('MRS DELACOURT — CONSTITUENT',
+  `"My grandson is turning nine and he wrote the President a letter. In crayon. It's a very good letter, I'm told."`,
+  ['mailroom'],`The screener will read it. Crayon letters get read. That's the rule.`,
+  1,1,1),
+C('SAL — KITCHEN',
+  `"The President's lunch is up. Club sandwich. It's been a club sandwich for eleven minutes and it's losing its will to live."`,
+  ['charlie'],`Charlie: "On it." You hear a door, a hallway, and the specific sound of a man jogging in a suit.`,
+  1,2,1),
+C('A MAN CLAIMING TO BE SECRETARY OF AGRICULTURE',
+  `"This is the Secretary of Agriculture. I need the President about soybeans." (The Secretary of Agriculture is a woman in her sixties.)`,
+  ['usss'],`Secret Service: "We'll take it from here." A pause. "He's on hold, isn't he." He is on hold.`,
+  1,3,1),
+C('A COAT-CHECK GIRL AT THE HAY-ADAMS',
+  `"There's a man in a tuxedo who says he's the Deputy Communications Director and he's lost his shoes."`,
+  ['toby'],`Toby: "That's Sam. Tell him to buy new ones and to stop calling the hotel like it's a hospital."`,
+  1,1,1),
+C('A FRESHMAN CONGRESSMAN',
+  `"I'd like to speak with the President. It's about the future of the party. It's about my future in the party."`,
+  ['mrsl'],`Mrs Landingham: "The President is not available. He will not be available. But I've written your name down, which is worse."`,
+  1,2,1),
+C('A POLLSTER',
+  `"New numbers. They're not good. They're not bad. They're the kind of numbers that make people ask me for numbers."`,
+  ['josh'],`Josh: "Read me the ones that make me look good first." The pollster reads him the other ones first.`,
+  1,2,1),
+C('A SCHOOL IN DAYTON',
+  `"We have forty third-graders and one working telephone and we'd like to say hello to the President."`,
+  ['mrsl'],`Mrs Landingham: "He'll write them a letter. He'll write them a better letter than they expect."`,
+  1,1,1),
+C('A NAVY CAPTAIN',
+  `"I have a ship and I have a question and the question is above my pay grade and below your clearance."`,
+  ['sitroom'],`Sit Room: "We have the ship. We have the question. We don't have the answer yet."`,
+  2,3,1),
+C('AIDE TO THE VICE PRESIDENT',
+  `"The Vice President would like five minutes. He says it's about the thing. He says you'll know the thing."`,
+  ['leo'],`Leo: "I know the thing. Tell him I know the thing and I'm already handling the thing."`,
+  2,2,1),
+C('AP REPORTER',
+  `"Two sources say the President is considering a thing. Can you confirm the thing?"`,
+  ['cj'],`CJ: "The President considers many things. Mostly breakfast." The reporter writes down "breakfast."`,
+  1,2,1),
+C('AN OLD MAN FROM MANCHESTER',
+  `"I shook his hand in '98. I'd like to shake it again. I'm not asking for much. I'm ninety-one."`,
+  ['mrsl'],`Mrs Landingham: "He'll shake it again. Bring a photo. He'll sign it badly."`,
+  1,1,1),
+C('A KID WHO WON A CONTEST',
+  `"I won the essay contest! The prize is a phone call with the President! I wrote about the postal service!"`,
+  ['mailroom'],`The screener: "Postal service. Kid's got taste."`,
+  1,1,1),
+
+/* ---- TIER 2 : two hops ---- */
+C('GOVERNOR OF OHIO',
+  `"I need the President on the line. I have a flood, a levee, and a camera crew."`,
+  ['mrsl','oval'],`Mrs Landingham puts him through. The Governor gets eight minutes. He uses seven of them on the camera crew.`,
+  2,4,1),
+C('THE PRESIDENT\'S DOCTOR',
+  `"This is Dr. Kellerman. The President missed his check-up. The First Lady would like to know why."`,
+  ['abbey','mrsl'],`The First Lady's office takes it. You hear the words "his check-up" and then the word "again."`,
+  2,3,2),
+C('TOBY, SECOND CALL OF THE MORNING',
+  `"I need to see him. Not talk. See. There's a difference and the difference is the whole job."`,
+  ['charlie','oval'],`Charlie: "He's got nine minutes." Toby: "I need four." He takes nine.`,
+  2,3,1),
+C('LEO — URGENT',
+  `"Get me the President. Now. Not in five minutes. Now is a unit of time I'm using literally."`,
+  ['mrsl','oval'],`Mrs Landingham doesn't even say anything. You just hear the door.`,
+  3,5,1),
+C('A TWO-STAR GENERAL',
+  `"I need to speak to someone about a thing in a place. The Chief of Staff will know the place."`,
+  ['sitroom','leo'],`Sit Room patches it up. Leo says three words you don't recognize and hangs up.`,
+  2,4,2),
+C('A SENATOR\'S WIFE',
+  `"I'm calling about the dinner. Not the seating. The other thing. The thing about the seating."`,
+  ['mrsl','cj'],`Mrs Landingham: "I'll have the press office call you." The press office will not call her.`,
+  1,2,1),
+C('JOSH\'S MOTHER',
+  `"Is my son eating? He doesn't eat. He's a grown man and he doesn't eat."`,
+  ['josh','leo'],`Josh: "Ma. Ma. I eat." Leo, in the background: "He doesn't eat."`,
+  1,2,1),
+C('A MAN WHO SAYS THE PRESIDENT OWES HIM MONEY',
+  `"Poker. Nineteen ninety-four. Manchester. He knows. He absolutely knows."`,
+  ['charlie','oval'],`Charlie comes back: "He says he knows, he says it was fifty, and he says to stop calling the White House about it."`,
+  2,3,2),
+C('A UNION STEWARD',
+  `"We're not asking for the moon. We're asking for the moon's parking lot."`,
+  ['josh','leo'],`Josh: "The parking lot's negotiable." It is not negotiable. Josh knows it's not negotiable.`,
+  2,3,2),
+C('A TELEVANGELIST',
+  `"I'd like to offer the President spiritual counsel. Also a book deal. Mostly the book deal."`,
+  ['cj','mailroom'],`CJ: "Book deal. Great. Send it to the mail room. They love book deals."`,
+  1,2,1),
+C('THE PRESIDENT\'S DAUGHTER',
+  `"It's Zoey. Please don't put me through to my father, I'm calling to complain about my father."`,
+  ['charlie','abbey'],`Charlie: "Your mother's office." Zoey: "That's worse." She goes anyway.`,
+  2,3,2),
+C('A MAN FROM THE DNC',
+  `"We need a number. One number. The number that wins the thing."`,
+  ['josh','leo'],`Josh: "There's no one number." The DNC man: "There's always one number." Josh hangs up on the one number.`,
+  2,3,3),
+C('A FOREIGN MINISTER',
+  `"I would like to convey a message of friendship. Also a message about the treaty. Mostly the treaty."`,
+  ['sitroom','leo'],`Sit Room takes it. Leo takes it from them. The treaty survives the morning.`,
+  2,4,3),
+
+/* ---- TIER 3 : three hops ---- */
+C('A GOVERNOR WITH A DISASTER',
+  `"I need a federal declaration. I have a hurricane, a mayor, and eleven miles of closed highway."`,
+  ['leo','mrsl','oval'],`Leo to Mrs Landingham to the Oval. The declaration comes at 2:40. The governor names a bridge after him.`,
+  3,5,3),
+C('A GENERAL WITH AN INCIDENT',
+  `"We have an incident. It's small. It's the kind of small that gets big by lunch."`,
+  ['sitroom','leo','oval'],`Sit Room, then Leo, then the door you never knock on. The incident stays small. Barely.`,
+  3,5,3),
+C('AN AMBASSADOR, FURIOUS',
+  `"My government has been insulted by a paragraph in a newspaper. I want a correction and I want a person."`,
+  ['sitroom','cj','leo'],`Sit Room hands it to CJ, CJ hands it to Leo, Leo hands it back to CJ and says "handle it." She handles it.`,
+  3,4,4),
+C('AN OLD FRIEND FROM NEW HAMPSHIRE',
+  `"Tell him it's the guy with the boat. He'll know. He'll pretend not to know, but he'll know."`,
+  ['charlie','mrsl','oval'],`Charlie to Mrs Landingham to the Oval. Twenty minutes later the President is laughing about a boat.`,
+  2,3,4),
+C('A HOSTAGE NEGOTIATOR',
+  `"This is not the call you think it is. Patch me to the Sit Room and then forget my voice."`,
+  ['sitroom','leo','oval'],`The Sit Room takes it in eleven seconds. Leo takes it in four. The Oval takes it in silence.`,
+  3,5,4),
+C('THE CHAIRMAN OF THE JOINT CHIEFS',
+  `"I need five minutes with the President and I need them to be the kind of five minutes people write books about."`,
+  ['sitroom','leo','oval'],`Sit Room. Leo. The door. The five minutes turn into forty. Books will be written.`,
+  3,5,5),
+
+/* ---- SPECIAL / TRAP CALLS ---- */
+C('PRESIDENT BARTLET',
+  `"This is the President. I want the kitchen. I want a steak. A real one. Not the thing with the green on it."`,
+  ['abbey'],`You do NOT patch the kitchen. The First Lady's office takes it. A pause. Then, distant: "Abbey, I'm the President of the United States—" Click.`,
+  4,4,2),
+C('PRESIDENT BARTLET — AGAIN',
+  `"It's me again. About the steak. Don't put me through to my wife. Put me through to the kitchen."`,
+  ['kitchen'],`The kitchen takes it. Sal: "Sir, there's a standing order." The President: "Whose?" Sal: "You know whose."`,
+  4,5,3),
+C('DANNY CONCANNON — ABOUT A STEAK',
+  `"I hear the President can't get a steak. I hear that from a guy. The guy is a very good guy."`,
+  ['cj'],`CJ: "There's no steak story." There is a steak story. She knows there's a steak story.`,
+  2,3,4),
+C('A MAN WHO IS NOT THE PRESIDENT',
+  `"This is President Bartlet. I need the nuclear codes. It's urgent. It's for a thing."`,
+  ['usss'],`Secret Service: "We'll take it." You hear a chair move. You hear the man say "wait" twice.`,
+  3,5,1),
+C('A MAN WITH A BOMB THREAT',
+  `"There's a van. I'm not saying where. I'm saying when. The when is Thursday."`,
+  ['usss','sitroom'],`Secret Service takes it in three seconds. The Sit Room takes it in two. Somewhere a van gets very boring.`,
+  4,5,3),
+C('A REPORTER WITH A RUMOR',
+  `"There's a story about the First Lady and a hospital board and I want to know if it's true before I print it."`,
+  ['cj','abbey'],`CJ takes it, then the First Lady's office. The story doesn't print. The reporter does.`,
+  3,4,5),
+C('THE PRESIDENT\'S LAWYER',
+  `"Privilege. That's the whole call. Privilege. Put me through to the man, not the office."`,
+  ['leo','oval'],`Leo takes it, argues for a minute, then patches it. You hear the word "privilege" nine times.`,
+  3,4,5),
+C('A WOMAN WHO SAYS SHE IS THE FIRST LADY',
+  `"This is Dr. Bartlet. Put me through to my husband. I'll hold." (It is, in fact, Dr. Bartlet.)`,
+  ['mrsl','oval'],`Mrs Landingham: "Good evening, ma'am." The First Lady: "He's not eating the steak, is he." He is not.`,
+  2,3,4),
+C('A BRITISH AMBASSADOR',
+  `"I've been told to express concern. I'm expressing it. This is me expressing it."`,
+  ['sitroom','leo','cj'],`Sit Room, Leo, CJ. By the end nobody is concerned and everybody has said the word "concerned."`,
+  3,4,5),
+C('A TAXI DRIVER',
+  `"I got a passenger who says he's the Secretary of State. He's not. He's very not."`,
+  ['usss','charlie'],`Secret Service takes it, then Charlie. Charlie sighs. "That's the third one this month."`,
+  2,3,2),
+C('AN ANGRY VETERAN',
+  `"I want to talk to somebody about the VA. Not the press. Not the Congress. Somebody who can actually do a thing."`,
+  ['leo','oval'],`Leo takes it personally, which is to say he takes it. The President takes it more personally.`,
+  3,4,4),
+C('THE KITCHEN — CALLING BACK',
+  `"The steak thing has escalated. There are now two steaks. One of them is a decoy."`,
+  ['abbey','mrsl'],`The First Lady's office. Then Mrs Landingham. The decoy steak is removed from the building.`,
+  3,4,5)
+];
+
+/* ---------------- SHIFT CONFIG ---------------- */
+const SHIFTS_PER_DAY = 2;
+const CALL_COUNT = [
+  [5,5],  // day 1
+  [5,6],  // day 2
+  [6,6],  // day 3
+  [6,7],  // day 4
+  [7,7],  // day 5
+  [7,8],  // day 6
+  [8,8]   // day 7
+];
+const BOARD_VOLUME = [
+  [48,52],[54,60],[62,68],[70,74],[76,80],[82,86],[88,90]
+];
+
+const DAY_TITLES = [
+  ['THE NEW GUY','You have a badge that says DIRECTOR and a desk that used to belong to a man named Doug who left "for personal reasons" and took the good chair.'],
+  ['THE THING','There is a thing. Everyone knows about the thing. Nobody will tell you what the thing is. The thing is now on your board.'],
+  ['THE STEAK INCIDENT','A standing order has been issued from the First Lady\'s office. It involves the President. It involves a steak. It involves you.'],
+  ['THE LEAK','Somebody talked to somebody. That somebody is now calling your switchboard to talk to somebody else about it.'],
+  ['THE VISIT','A head of state is coming. Every line is live. Every person wants the President. The President wants a nap.'],
+  ['THE VOTE','Congress is voting. The building is vibrating. The board has not stopped ringing since Tuesday.'],
+  ['THE LAST SHIFT','You have been here a week. They are starting to use your name. This is either good or very bad.']
+];
+
+const BRIEFS = [
+  ['DAY SHIFT','Morning. The building smells like coffee and fear. Route the calls. Do not route them to the President unless somebody whose job it is to know says it is worth the President\'s time.'],
+  ['NIGHT SHIFT','Night. Half the building is dark and the other half is lying about it. The calls get stranger. The people who answer get shorter.'],
+];
+
+/* ---------------- STATE ---------------- */
+const state = {
+  day:1, shift:0,
+  queue:[], cur:null, step:0,
+  done:0, total:0,
+  score:0, rep:100,
+  correct:0, wrong:0, dropped:0,
+  t:0, tmax:0, timer:null, live:false,
+  muted:false, lineNo:1,
+  shiftStats:{correct:0,wrong:0,dropped:0,score:0}
+};
+
+/* ---------------- AUDIO ---------------- */
+let actx=null;
+function beep(freq,dur,type,vol){
+  if(state.muted) return;
+  try{
+    if(!actx) actx = new (window.AudioContext||window.webkitAudioContext)();
+    const o=actx.createOscillator(), g=actx.createGain();
+    o.type=type||'square'; o.frequency.value=freq;
+    g.gain.value=vol||0.05;
+    o.connect(g); g.connect(actx.destination);
+    const n=actx.currentTime;
+    g.gain.setValueAtTime(g.gain.value,n);
+    g.gain.exponentialRampToValueAtTime(0.001,n+dur);
+    o.start(n); o.stop(n+dur);
+  }catch(e){}
+}
+const SFX={
+  ring:()=>{beep(880,0.08,'square',0.04); setTimeout(()=>beep(660,0.08,'square',0.04),110);},
+  good:()=>{beep(520,0.06,'sine',0.06); setTimeout(()=>beep(780,0.09,'sine',0.06),60);},
+  bad:()=>{beep(180,0.18,'sawtooth',0.06);},
+  drop:()=>{beep(120,0.3,'sawtooth',0.07);}
+};
+
+/* ---------------- TOAST ---------------- */
+let toastT=null;
+function toast(msg){
+  const t=$('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),1900);
+}
+
+/* ---------------- SCREEN ---------------- */
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $(id).classList.add('active');
+}
+
+/* ---------------- BOARD BUILD ---------------- */
+(function buildBoard(){
+  const b=$('board');
+  EXT_ORDER.forEach((k,i)=>{
+    const el=document.createElement('button');
+    el.className='ext off'; el.id='ext-'+k;
+    el.innerHTML='<span class="lamp"></span><span class="lbl">'+EXT[k].label+
+                 '</span><span class="sub">'+EXT[k].sub+'</span>';
+    el.addEventListener('click',()=>patch(k));
+    b.appendChild(el);
+  });
+})();
+
+function setBoardLive(on){
+  EXT_ORDER.forEach(k=>{
+    const el=$('ext-'+k);
+    el.classList.toggle('off',!on);
+    el.classList.remove('good','bad');
+  });
+}
+function flashExt(k,cls){
+  const el=$('ext-'+k);
+  if(!el) return;
+  el.classList.add(cls);
+  setTimeout(()=>el.classList.remove(cls),650);
+}
+
+/* ---------------- HUD ---------------- */
+function updateHUD(){
+  $('hudDay').textContent=state.day;
+  $('hudShift').textContent=state.shift===0?'DAY':'NIGHT';
+  $('hudCalls').textContent=state.done+'/'+state.total;
+  $('hudScore').textContent=state.score;
+  $('repfill').style.width=clamp(state.rep,0,100)+'%';
+  $('repfill').style.background = state.rep>60
+    ? 'linear-gradient(90deg,#5fd47a,#c9a227)'
+    : state.rep>30 ? 'linear-gradient(90deg,#f0a63a,#c9a227)'
+    : 'linear-gradient(90deg,#e04b3a,#f0a63a)';
+  // clock
+  const base = state.shift===0 ? 6 : 18;
+  const span = 12;
+  const frac = state.total? state.done/state.total : 0;
+  let h = base + Math.floor(frac*span);
+  const m = Math.floor((frac*span%1)*60);
+  const ampm = h>=12&&h<24?'PM':'AM';
+  let hh = h%12; if(hh===0) hh=12;
+  $('hudClock').textContent = hh+':'+String(m).padStart(2,'0')+' '+ampm;
+}
+
+/* ---------------- MEMOS ---------------- */
+const MEMO_POOL = [
+  'STANDING ORDER — Oval Office: no calls before 7:00 AM unless Leo McGarry says the word "now." He will say the word "now."',
+  'REMINDER — The President does not take calls about polls. He takes calls about the thing the polls are about. Big difference.',
+  'FROM THE FIRST LADY\'S OFFICE — Any call regarding the President\'s diet comes here first. Any call. Yes, that one too.',
+  'FROM MRS LANDINGHAM — If a caller says "it\'s about the thing," it is not about the thing. Put it through anyway and let him decide.',
+  'FROM CJ CREGG — If it is Danny Concannon, it is mine. If it is Danny Concannon about me, it is also mine.',
+  'FROM TOBY ZIEGLER — Do not put the President through to me. I will call him. He hates being called. I hate calling. It works.',
+  'FROM CHARLIE — The President\'s schedule has four minutes of air in it. Those four minutes are already promised to three people.',
+  'FROM SECRET SERVICE — If the caller cannot be verified in nine seconds, they cannot be verified. Nine seconds is generous.',
+  'FROM THE KITCHEN — There is a standing order about the steak. We are not at liberty to say whose. You know whose.',
+  'FROM LEO — The last person before the President decides if it is worth the President\'s time. That person is not you. Route accordingly.',
+  'FROM JOSH — Any call about the highway bill is a call about the highway bill, which is a call about the election, which is a call about me.',
+  'FROM THE SITUATION ROOM — This extension does not exist. If you are reading this memo, you have already made a mistake.',
+  'FROM THE MAIL ROOM — Crayon letters get read. This is not policy. This is just true.',
+  'FROM THE FIRST LADY — I am a doctor. I will always take the call. I will not always like it.'
+];
+
+function addMemo(text,isNew){
+  const m=$('memos');
+  const d=document.createElement('div');
+  d.className='memo'+(isNew?' new':'');
+  d.textContent=text;
+  m.appendChild(d);
+  m.scrollTop=m.scrollHeight;
+}
+
+/* ---------------- SHIFT START ---------------- */
+function startShift(){
+  const cfg=CALL_COUNT[state.day-1];
+  const n=cfg[state.shift];
+  state.total=n; state.done=0;
+  state.shiftStats={correct:0,wrong:0,dropped:0,score:0};
+  state.dropped=0;
+
+  // build queue
+  const eligible=POOL.filter(c=>c.minDay<=state.day);
+  let picks=shuffle(eligible).slice(0,n);
+  // guarantee variety: at least one tier>=2 by day 2, one special by day 3
+  if(state.day>=3 && !picks.some(c=>c.tier>=4)){
+    const sp=shuffle(POOL.filter(c=>c.tier>=4&&c.minDay<=state.day))[0];
+    if(sp) picks[0]=sp;
+  }
+  state.queue=picks;
+
+  // memos
+  $('memos').innerHTML='';
+  const memos=shuffle(MEMO_POOL).slice(0,state.day>=4?4:3);
+  memos.forEach(t=>addMemo(t,false));
+  addMemo('— SHIFT LOG: DAY '+state.day+', '+(state.shift===0?'DAY':'NIGHT')+' —',true);
+
+  show('screen-play');
+  updateHUD();
+  setBoardLive(false);
+  $('callSpeaker').textContent='STANDBY';
+  $('callBody').innerHTML='<p class="line sys">The board is lit. Twelve lines. One of them is going to be the one.</p>';
+  setTimeout(nextCall,700);
+}
+
+/* ---------------- CALL FLOW ---------------- */
+function nextCall(){
+  if(state.done>=state.total){ endShift(); return; }
+  if(state.queue.length===0){ endShift(); return; }
+
+  state.cur=state.queue.shift();
+  state.step=0;
+  state.live=true;
+  state.lineNo=1+Math.floor(Math.random()*12);
+  $('lineTag').textContent='LINE '+state.lineNo;
+  $('callSpeaker').textContent=state.cur.who;
+
+  const urg=state.cur.urg;
+  const tag=$('urgTag');
+  tag.className='urg u'+urg;
+  tag.textContent=['','ROUTINE','NORMAL','PRIORITY','URGENT','CRITICAL'][urg];
+
+  $('callBody').innerHTML='<p class="line">'+esc(state.cur.text)+'</p>'+
+    '<p class="prompt">▶ PATCH TO THE CORRECT DESK</p>';
+  $('callbox').scrollTop=0;
+
+  setBoardLive(true);
+  SFX.ring();
+  startTimer();
+}
+
+function startTimer(){
+  const c=state.cur;
+  let base = 16 - (state.day*0.9) - (c.urg*1.1) + (c.tier>=3?2:0);
+  base = clamp(base, 6.5, 18);
+  state.tmax = base*1000;
+  state.t = state.tmax;
+  clearInterval(state.timer);
+  state.timer=setInterval(()=>{
+    if(!state.live){clearInterval(state.timer);return;}
+    state.t -= 50;
+    const pct=clamp(state.t/state.tmax*100,0,100);
+    $('patfill').style.width=pct+'%';
+    if(state.t<=0){
+      clearInterval(state.timer);
+      timeoutCall();
+    }
+  },50);
+  $('patfill').style.width='100%';
+}
+
+function appendLine(text,cls){
+  const p=document.createElement('p');
+  p.className='line '+(cls||'');
+  p.textContent=text;
+  $('callBody').appendChild(p);
+  $('callbox').scrollTop=$('callbox').scrollHeight;
+}
+
+function patch(ext){
+  if(!state.live||!state.cur) return;
+  const c=state.cur;
+  const expect=c.chain[state.step];
+
+  if(ext===expect){
+    state.step++;
+    flashExt(ext,'good');
+    SFX.good();
+    clearInterval(state.timer);
+
+    if(state.step>=c.chain.length){
+      completeCall();
+    } else {
+      appendLine(HANDOFF[ext]||'Click.','fwd');
+      appendLine('▶ NEXT: PATCH IT FURTHER UP','sys');
+      startTimer();
+    }
+  } else {
+    wrongPatch(ext);
+  }
+}
+
+function wrongPatch(ext){
+  clearInterval(state.timer);
+  state.live=false;
+  setBoardLive(false);
+  flashExt(ext,'bad');
+  SFX.bad();
+
+  appendLine((WRONG[ext]||'"Wrong desk."'),'bad');
+  appendLine('WRONG DESK — the caller hangs up on you.','bad');
+
+  state.rep=clamp(state.rep-7,0,100);
+  state.wrong++;
+  state.shiftStats.wrong++;
+  state.done++;
+  updateHUD();
+  toast('REPUTATION −7');
+
+  if(state.rep<=0){ setTimeout(fired,1100); return; }
+  setTimeout(nextCall,1250);
+}
+
+function timeoutCall(){
+  state.live=false;
+  setBoardLive(false);
+  SFX.drop();
+  appendLine('The line goes dead. Somewhere in the building, a phone rings and rings and rings.','bad');
+  state.rep=clamp(state.rep-11,0,100);
+  state.dropped++;
+  state.shiftStats.dropped++;
+  state.done++;
+  updateHUD();
+  toast('CALL DROPPED · REPUTATION −11');
+  if(state.rep<=0){ setTimeout(fired,1100); return; }
+  setTimeout(nextCall,1250);
+}
+
+function completeCall(){
+  state.live=false;
+  setBoardLive(false);
+  const c=state.cur;
+  const timeBonus=Math.round((state.t/state.tmax)*12);
+  const pts=10 + c.tier*6 + c.urg*4 + timeBonus;
+  state.score+=pts;
+  state.shiftStats.score+=pts;
+  state.correct++;
+  state.shiftStats.correct++;
+  state.rep=clamp(state.rep+1.5,0,100);
+  state.done++;
+
+  appendLine(c.post,'good');
+  appendLine('✓ PATCHED · +'+pts,'sys');
+  updateHUD();
+  toast('CONNECTED · +'+pts);
+
+  setTimeout(nextCall,1300);
+}
+
+/* ---------------- END OF SHIFT ---------------- */
+function endShift(){
+  clearInterval(state.timer);
+  state.live=false;
+  setBoardLive(false);
+  renderReport();
+  show('screen-report');
+}
+
+function renderReport(){
+  const s=state.shiftStats;
+  const vol=BOARD_VOLUME[state.day-1][state.shift];
+  const total=s.correct+s.wrong+s.dropped;
+  const acc = total? Math.round(s.correct/total*100):0;
+
+  let grade, note;
+  if(acc>=90){grade='A';note='You are unnervingly good at this. Mrs Landingham has noticed. That is not entirely a compliment.';}
+  else if(acc>=75){grade='B';note='Competent. The building tolerates competent. The building is not impressed by it.';}
+  else if(acc>=55){grade='C';note='You are keeping the board alive the way a man keeps a boat alive by bailing. Keep bailing.';}
+  else if(acc>=35){grade='D';note='People are starting to route around you. Literally. There is a workaround. It has your name on it.';}
+  else {grade='F';note='Leo has asked, twice, who hired you. Nobody has admitted it yet.';}
+
+  const isLast = (state.day===7 && state.shift===1);
+
+  $('reportCard').innerHTML = `
+    <div class="dayline">END OF SHIFT · DAY ${state.day} · ${state.shift===0?'DAY':'NIGHT'}</div>
+    <h2>SHIFT REPORT</h2>
+    <div class="statrow"><span>BOARD VOLUME</span><span>${vol} calls</span></div>
+    <div class="statrow"><span>REACHED YOUR DESK</span><span>${total}</span></div>
+    <div class="statrow"><span>CONNECTED</span><span>${s.correct}</span></div>
+    <div class="statrow"><span>WRONG DESK</span><span>${s.wrong}</span></div>
+    <div class="statrow"><span>DROPPED</span><span>${s.dropped}</span></div>
+    <div class="statrow"><span>ACCURACY</span><span>${acc}%</span></div>
+    <div class="statrow big"><span>SHIFT SCORE</span><span>+${s.score}</span></div>
+    <div class="statrow big"><span>TOTAL SCORE</span><span>${state.score}</span></div>
+    <div class="statrow"><span>GRADE</span><span>${grade}</span></div>
+    <div class="verdict">${note}</div>
+    <button class="btn" id="repBtn">${isLast?'FINAL REPORT':'CONTINUE'}</button>
+  `;
+  $('repBtn').addEventListener('click',()=>{
+    if(isLast){ finalReport(); return; }
+    // advance
+    if(state.shift===0){ state.shift=1; showBrief(); }
+    else { state.shift=0; state.day++; if(state.day>7){finalReport();return;} showBrief(); }
+  });
+}
+
+/* ---------------- BRIEF ---------------- */
+function showBrief(){
+  const d=state.day, sh=state.shift;
+  $('briefDay').textContent='DAY '+d+' · '+(sh===0?'DAY SHIFT':'NIGHT SHIFT');
+  $('briefTitle').textContent=DAY_TITLES[d-1][0];
+  const vol=BOARD_VOLUME[d-1][sh];
+  const n=CALL_COUNT[d-1][sh];
+  $('briefText').textContent=DAY_TITLES[d-1][1]+' '+BRIEFS[sh][1];
+  $('briefStats').innerHTML=
+    '<div>BOARD VOLUME <b>'+vol+'</b></div>'+
+    '<div>YOUR DESK <b>'+n+'</b></div>'+
+    '<div>DIFFICULTY <b>'+'▮'.repeat(d)+'▯'.repeat(7-d)+'</b></div>'+
+    '<div>REPUTATION <b>'+Math.round(state.rep)+'</b></div>';
+  show('screen-brief');
+}
+
+/* ---------------- GAME OVER ---------------- */
+function fired(){
+  clearInterval(state.timer);
+  const vol=BOARD_VOLUME[state.day-1][state.shift];
+  $('endCard').innerHTML=`
+    <div class="dayline">TERMINATION</div>
+    <h2>YOU ARE FIRED</h2>
+    <p>Your reputation hit zero at ${state.done} calls into Day ${state.day}, ${state.shift===0?'Day':'Night'} shift.</p>
+    <p>The Director of the Information Office is a job where the only qualification is that nothing gets through that shouldn't, and everything that should does. You made it a job where things got through.</p>
+    <div class="statrow big"><span>FINAL SCORE</span><span>${state.score}</span></div>
+    <div class="statrow"><span>CALLS CONNECTED</span><span>${state.correct}</span></div>
+    <div class="statrow"><span>WRONG DESK</span><span>${state.wrong}</span></div>
+    <div class="statrow"><span>DROPPED</span><span>${state.dropped}</span></div>
+    <div class="verdict">Mrs Landingham will write you a reference. It will be one sentence. It will be accurate.</div>
+    <button class="btn" id="againBtn">TAKE THE DESK AGAIN</button>
+  `;
+  $('againBtn').addEventListener('click',()=>location.reload());
+  show('screen-end');
+}
+
+function finalReport(){
+  clearInterval(state.timer);
+  const total=state.correct+state.wrong+state.dropped;
+  const acc=total?Math.round(state.correct/total*100):0;
+  let title,body;
+  if(acc>=85&&state.score>2500){
+    title='THE FIXER';
+    body='A week ago nobody knew your name. Now the board stops ringing when you walk past it, out of respect. The building has decided you are one of the ones who makes it work. Mrs Landingham called you "acceptable," which from her is a parade.';
+  } else if(acc>=65){
+    title='THE REGULAR';
+    body='You are not the hero of this building. You are the reason the hero gets his calls. That is not a small thing in a building where the phone is the whole government at 3 a.m. They will keep you.';
+  } else if(acc>=45){
+    title='THE SURVIVOR';
+    body='You made it seven days. There were mistakes. There were a lot of mistakes. But the board is still lit and someone is still answering, and in this building that counts as a kind of competence.';
+  } else {
+    title='THE CAUTIONARY TALE';
+    body='There is a training module named after you now. It is not a long module. It is mostly a list of things not to do, and every item on it is a call you took.';
+  }
+  $('endCard').innerHTML=`
+    <div class="dayline">SEVEN DAYS · FINAL REPORT</div>
+    <h2>${title}</h2>
+    <p>${body}</p>
+    <div class="statrow"><span>CALLS CONNECTED</span><span>${state.correct}</span></div>
+    <div class="statrow"><span>WRONG DESK</span><span>${state.wrong}</span></div>
+    <div class="statrow"><span>DROPPED</span><span>${state.dropped}</span></div>
+    <div class="statrow"><span>ACCURACY</span><span>${acc}%</span></div>
+    <div class="statrow big"><span>FINAL SCORE</span><span>${state.score}</span></div>
+    <div class="verdict">"The last person before the President decides if it's worth the President's time." — Leo McGarry, probably, at some point, to somebody.</div>
+    <button class="btn" id="againBtn">TAKE THE DESK AGAIN</button>
+  `;
+  $('againBtn').addEventListener('click',()=>location.reload());
+  show('screen-end');
+}
+
+/* ---------------- UTIL ---------------- */
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+/* ---------------- WIRE UP ---------------- */
+$('startBtn').addEventListener('click',()=>{
+  showBrief();
+});
+$('briefBtn').addEventListener('click',()=>{
+  startShift();
+});
+$('mutebtn').addEventListener('click',()=>{
+  state.muted=!state.muted;
+  $('mutebtn').textContent=state.muted?'♪ OFF':'♪ ON';
+});
+
+/* prevent iOS double-tap zoom on board */
+document.addEventListener('gesturestart',e=>e.preventDefault());
+</script>
+</body>
+</html>
